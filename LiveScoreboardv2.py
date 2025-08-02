@@ -325,6 +325,8 @@ async def update_matches():
 @tasks.loop(minutes=10)
 async def upcoming_matches():
     try:
+        await pause_allowed.wait()
+
         response = get_upcoming()
         data = response.json()
 
