@@ -30,7 +30,7 @@ last_known_scores = {}  # Tracks score for map count logic
 
 finalized_matches = set()
 
-TBD = ['tbd', 'unknown', None]
+TBD = {'tbd', 'unknown', None}
 
 
 def parse_time_to_seconds(time_str):
@@ -68,15 +68,24 @@ def format_score(t_score, ct_score):
 def fix_round_totals(round_t1, round_t2):
     format_score(round_t1, 0)
     format_score(round_t2, 0)
-    if round_t1 == 0 and round_t2 == 0:
+
+    if round_t1 == "0" and round_t2 == "0":
         return round_t1, round_t2
+
     while max(int(round_t1), int(round_t2)) < 13 or abs(int(round_t1) - int(round_t2)) < 2:
-        if int(round_t1) - int(round_t2) > 0:
-            round_t1 = str(int(round_t1) + 1)
-        elif int(round_t1) - int(round_t2) < 0:
-            round_t2 = str(int(round_t2) + 1)
+        diff = int(round_t1) - int(round_t2)
+        if diff > 0:
+            round_t1 = str(int(round_t1)) + 1
+        elif diff < 0:
+            round_t2 = str(int(round_t2)) + 1
 
     return round_t1, round_t2
+
+
+def normalize_map_name(name):
+    if name is None:
+        return None
+    return name.strip().lower()
 
 
 def log_payload_on_exception(payload: dict, context: str = "unknown"):
@@ -109,6 +118,7 @@ def is_api_healthy():
     except Exception as e:
         print(f"[HEALTH CHECK ERROR] {e}")
         return False
+
 
 def build_match_description(match_id, match_data, match_history, status="LIVE"):
     team1 = match_data["team1"]
@@ -151,7 +161,8 @@ def build_match_description(match_id, match_data, match_history, status="LIVE"):
             found_existing = True
             break
             # Handle TBD → real map name transition
-        elif existing_map_name.strip().lower() in TBD and map_name.strip().lower() not in TBD:
+        elif normalize_map_name(existing_map_name) in TBD and normalize_map_name(map_name) not in TBD:
+            map_name = "TBD"
             match_history[match_id][key] = (map_name, r1, r2)
             map_number = key
             found_existing = True
@@ -308,7 +319,6 @@ async def update_matches():
 
                 finalized_matches.add(match_id)
 
-
         print('Message Updated @', datetime.now().strftime('%I:%M:%S %p'))
 
     except requests.exceptions.JSONDecodeError as e:
@@ -330,7 +340,8 @@ async def upcoming_matches():
         response = get_upcoming()
         data = response.json()
 
-        data["data"]["segments"] = [segment for segment in data["data"]["segments"] if "VCT" in segment.get("match_event")]
+        data["data"]["segments"] = [segment for segment in data["data"]["segments"] if
+                                    "VCT" in segment.get("match_event")]
 
         data = data["data"]["segments"]
 
@@ -344,7 +355,7 @@ async def upcoming_matches():
         else:
             # Continue
             update_allowed.set()  # resume updates
-            print("Incoming match soon — resuming updates.")
+            aw
 
     except Exception as e:
         print(f"Error checking upcoming matches: {e}")
@@ -385,5 +396,6 @@ async def on_ready():
     update_matches.start()
     cleanup_final_matches.start()
     upcoming_matches.start()
+
 
 bot.run(TOKEN)
