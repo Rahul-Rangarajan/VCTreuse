@@ -355,7 +355,7 @@ async def upcoming_matches():
         else:
             # Continue
             update_allowed.set()  # resume updates
-            aw
+            print("Incoming match soon — resuming updates.")
 
     except Exception as e:
         print(f"Error checking upcoming matches: {e}")
