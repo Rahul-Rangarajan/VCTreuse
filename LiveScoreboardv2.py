@@ -10,7 +10,7 @@ from datetime import datetime
 from apiCalls import get_live_matches, get_upcoming, get_health
 
 TOKEN = os.getenv("TOKEN")
-CHANNEL_ID = os.getenv("CHANNELID")
+CHANNEL_ID = int(os.getenv("CHANNELID"))
 
 intents = discord.Intents.default()
 bot = commands.Bot(command_prefix="!", intents=intents)
@@ -31,6 +31,7 @@ last_known_scores = {}  # Tracks score for map count logic
 finalized_matches = set()
 
 TBD = ['tbd', 'unknown', None]
+
 
 def parse_time_to_seconds(time_str):
     # Extract numbers and units using regex
@@ -67,7 +68,7 @@ def format_score(t_score, ct_score):
 def fix_round_totals(round_t1, round_t2):
     format_score(round_t1, 0)
     format_score(round_t2, 0)
-    if round_t1 ==0 and round_t2 == 0:
+    if round_t1 == 0 and round_t2 == 0:
         return round_t1, round_t2
     while max(int(round_t1), int(round_t2)) < 13 or abs(int(round_t1) - int(round_t2)) < 2:
         if int(round_t1) - int(round_t2) > 0:
@@ -79,7 +80,7 @@ def fix_round_totals(round_t1, round_t2):
 
 
 def log_payload_on_exception(payload: dict, context: str = "unknown"):
-    timestamp = datetime.datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
+    timestamp = datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
     filename = f"logs/ErrorPayload/error_payload_{context}_{timestamp}.json"
     try:
         with open(filename, "w", encoding="utf-8") as f:
