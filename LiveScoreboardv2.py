@@ -57,7 +57,8 @@ def format_score(t_score, ct_score):
         try:
             return int(value)
         except (TypeError, ValueError):
-            print(f"[Warning] Invalid score for {label}: {value}")
+            if value != "N/A":
+                print(f"[Warning] Invalid score for {label}: {value}")
             return 0
 
     t = safe_int(t_score, "T-side")
@@ -66,8 +67,6 @@ def format_score(t_score, ct_score):
 
 
 def fix_round_totals(round_t1, round_t2):
-    format_score(round_t1, 0)
-    format_score(round_t2, 0)
 
     if round_t1 == "0" and round_t2 == "0":
         return round_t1, round_t2
@@ -75,9 +74,9 @@ def fix_round_totals(round_t1, round_t2):
     while max(int(round_t1), int(round_t2)) < 13 or abs(int(round_t1) - int(round_t2)) < 2:
         diff = int(round_t1) - int(round_t2)
         if diff > 0:
-            round_t1 = str(int(round_t1)) + 1
+            round_t1 = str(int(round_t1) + 1)
         elif diff < 0:
-            round_t2 = str(int(round_t2)) + 1
+            round_t2 = str(int(round_t2) + 1)
 
     return round_t1, round_t2
 
@@ -129,6 +128,10 @@ def build_match_description(match_id, match_data, match_history, status="LIVE"):
     map_number = 1 if match_data["map_number"] == "Unknown" else int(match_data["map_number"])
     print(map_number)
     map_name = match_data["current_map"]
+    print(map_name)
+    if normalize_map_name(map_name) in TBD:
+        map_name = "TBD"
+
     round1 = format_score(match_data["team1_round_t"], match_data["team1_round_ct"])
     round2 = format_score(match_data["team2_round_t"], match_data["team2_round_ct"])
 
@@ -143,7 +146,8 @@ def build_match_description(match_id, match_data, match_history, status="LIVE"):
         if map_number < max_map:
             if map_number in match_history[match_id]:
                 _, r1, r2 = match_history[match_id][map_number]
-                if int(r1) > 0 or int(r2) > 0:
+                name, _, _ = match_history[match_id][max_map]
+                if name not in TBD and (int(r1) > 0 or int(r2) > 0):
                     print(
                         f"[Map Rewind] Skipping update for match_id={match_id}, map_number={map_number}. Existing r1={r1}, r2={r2}")
                     return None
@@ -155,14 +159,16 @@ def build_match_description(match_id, match_data, match_history, status="LIVE"):
         match_history[match_id][map_number] = (temp_map_name, r1, r2)
 
     found_existing = False
+    normalized_current = normalize_map_name(map_name)
+
     for key, (existing_map_name, r1, r2) in match_history[match_id].items():
-        if existing_map_name == map_name:
+        normalized_existing = normalize_map_name(existing_map_name)
+        if normalized_existing == normalized_current:
             map_number = key
             found_existing = True
             break
             # Handle TBD → real map name transition
         elif normalize_map_name(existing_map_name) in TBD and normalize_map_name(map_name) not in TBD:
-            map_name = "TBD"
             match_history[match_id][key] = (map_name, r1, r2)
             map_number = key
             found_existing = True
